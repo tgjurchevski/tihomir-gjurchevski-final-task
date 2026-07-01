@@ -16,6 +16,16 @@
         "pages",
         "fixtures",
         "utils",
-        "playwright.config.ts"
+        "playwright.config.ts",
+        "pages/BaseShopPage.ts",
+        "pages/AccountCreationPage.ts",
+        "pages/CartPage.ts",
+        "pages/CheckoutPage.ts",
+        "pages/PaymentConfirmationPage.ts",
+        "pages/PaymentPage.ts",
+        "pages/ProductDetailPage.ts",
+        "pages/ProductsPage.ts",
+        "pages/ShopHomePage.ts",
+        "pages/SignupLoginPage.ts"
     ]
 }
