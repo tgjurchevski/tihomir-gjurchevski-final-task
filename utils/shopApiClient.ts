@@ -36,15 +36,13 @@ export class ShopApiClient {
     }
 
     async searchProducts(keyword: string): Promise<ProductsResponse> {
-        const response = await this.request.post(`${this.baseUrl}/searchProduct`, {
-            form: { search_product: keyword },
-        });
-        return JSON.parse(await response.text());
+        const text = await this.postFormWithRetry(`${this.baseUrl}/searchProduct`, { search_product: keyword });
+        return this.parseJson<ProductsResponse>(text);
     }
 
     async searchProductsWithoutParameter(): Promise<MessageResponse> {
-        const response = await this.request.post(`${this.baseUrl}/searchProduct`);
-        return JSON.parse(await response.text());
+        const text = await this.postFormWithRetry(`${this.baseUrl}/searchProduct`);
+        return this.parseJson<MessageResponse>(text);
     }
 
     async createAccount(user: ShopUser): Promise<void> {
@@ -82,5 +80,26 @@ export class ShopApiClient {
         });
         const body = JSON.parse(await response.text());
         return body.responseCode === 200;
+    }
+    private async parseJson<T>(text: string): Promise<T> {
+        try {
+            return JSON.parse(text) as T;
+        } catch {
+            throw new Error(`API returned non-JSON response: ${text.slice(0, 200)}`);
+        }
+    }
+
+    private async postFormWithRetry(url: string, form?: Record<string, string>, attempts = 3): Promise<string> {
+        let lastText = '';
+        for (let i = 0; i < attempts; i++) {
+            const response = await this.request.post(url, form ? { form } : {});
+            lastText = await response.text();
+            if (!lastText.trimStart().startsWith('<')) {
+                return lastText; // looks like JSON, good
+            }
+            // HTML (throttled/blocked) — brief backoff, then retry
+            await new Promise((r) => setTimeout(r, 1000 * (i + 1)));
+        }
+        return lastText;
     }
 }

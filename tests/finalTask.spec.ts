@@ -6,6 +6,12 @@ import { ShopHomePage } from '../pages/automationExercise/ShopHomePage';
 import { generateUser } from '../utils/generateUser';
 import { CartPage } from '../pages/automationExercise/CartPage';
 import { ShopApiClient } from '../utils/shopApiClient';
+import { SignupLoginPage } from '../pages/automationExercise/SignupLoginPage';
+import { AccountCreationPage } from '../pages/automationExercise/AccountCreationPage';
+import { CheckoutPage } from '../pages/automationExercise/CheckoutPage';
+import { PaymentPage } from '../pages/automationExercise/PaymentPage';
+import { PaymentConfirmationPage } from '../pages/automationExercise/PaymentConfirmationPage';
+import { test as authTest, expect as authExpect } from '../fixtures/authenticatedShopPage';
 
 test.describe('Automation Exercise — Final Task', () => {
   test.beforeEach(async ({ page }) => {
@@ -14,6 +20,47 @@ test.describe('Automation Exercise — Final Task', () => {
       /googlesyndication|doubleclick|googleads|adtrafficquality|adsbygoogle/,
       (route) => route.abort()
     );
+  });
+
+  test('TC-SHOP-001: full shopping flow — register, add to cart, checkout', async ({ page }) => {
+    await allure.epic('Shopping');
+    await allure.feature('Checkout');
+    await allure.story('Full E2E flow');
+    await allure.severity('critical');
+
+    const user = generateUser();
+    const homePage = new ShopHomePage(page);
+    const signupLoginPage = new SignupLoginPage(page);
+    const accountCreationPage = new AccountCreationPage(page);
+    const productsPage = new ProductsPage(page);
+    const cartPage = new CartPage(page);
+    const checkoutPage = new CheckoutPage(page);
+    const paymentPage = new PaymentPage(page);
+    const confirmationPage = new PaymentConfirmationPage(page);
+
+    // Register
+    await homePage.open();
+    await homePage.signupLoginLink.click();
+    await signupLoginPage.signup(user.name, user.email);
+    await accountCreationPage.fillAccountForm(user);
+    await accountCreationPage.submitAndContinue();
+    await homePage.assertLoggedInAs(user.name);
+
+    // Add product to cart
+    await productsPage.open();
+    await productsPage.addProductToCart(0);
+    await productsPage.viewCart();
+
+    // Checkout
+    await cartPage.proceedToCheckoutButton.click();
+    await checkoutPage.assertDeliveryAddressMatches(user);
+    await checkoutPage.placeOrder();
+
+    // Pay
+    await paymentPage.payWithCard(`${user.firstName} ${user.lastName}`);
+
+    // Confirm
+    await confirmationPage.assertOrderPlaced();
   });
 
   test('TC-SHOP-002: keyword search returns only matching products', async ({ page }) => {
@@ -170,6 +217,33 @@ test.describe('Automation Exercise — Final Task', () => {
     await homePage.subscribeToNewsletter(user.email);
 
     await homePage.assertSubscriptionSuccess();
+  });
+
+});
+
+authTest.describe('Automation Exercise — Authenticated', () => {
+  authTest.beforeEach(async ({ page }) => {
+    await page.route(
+      /googlesyndication|doubleclick|googleads|adtrafficquality|adsbygoogle/,
+      (route) => route.abort()
+    );
+  });
+
+  authTest('TC-SHOP-010: logged-in user is redirected away from /login', async ({ authenticatedShopPage, shopUser }) => {
+    await allure.epic('Auth');
+    await allure.feature('Session');
+    await allure.story('Redirect logged-in user');
+    await allure.severity('minor');
+
+    // Navigate directly to /login while authenticated
+    await authenticatedShopPage.goto('/login');
+    await authenticatedShopPage.waitForURL('/');
+
+    // Final URL is the home page, not /login
+    authExpect(new URL(authenticatedShopPage.url()).pathname).toBe('/');
+
+    const homePage = new ShopHomePage(authenticatedShopPage);
+    await homePage.assertLoggedInAs(shopUser.name);
   });
 
 });
