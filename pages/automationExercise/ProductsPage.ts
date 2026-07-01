@@ -8,6 +8,9 @@ export class ProductsPage extends BaseShopPage {
     readonly searchButton: Locator;
     readonly productCards: Locator;
     readonly productNames: Locator;
+    readonly cartModal: Locator;
+    readonly continueShoppingButton: Locator;
+    readonly viewCartLink: Locator;
 
     constructor(page: Page) {
         super(page);
@@ -17,6 +20,9 @@ export class ProductsPage extends BaseShopPage {
         this.searchButton = page.locator('#submit_search');
         this.productCards = page.locator('.features_items .product-image-wrapper');
         this.productNames = this.productCards.locator('.productinfo p');
+        this.cartModal = page.locator('#cartModal');
+        this.continueShoppingButton = this.cartModal.getByRole('button', { name: 'Continue Shopping' });
+        this.viewCartLink = this.cartModal.locator('a', { hasText: 'View Cart' });
     }
 
     async open(): Promise<void> {
@@ -62,5 +68,25 @@ export class ProductsPage extends BaseShopPage {
     async openFirstProductDetails(): Promise<void> {
         await this.productCards.first().locator('a', { hasText: 'View Product' }).click();
         await this.page.waitForURL(/\/product_details\//);
+    }
+    async getProductName(index: number): Promise<string> {
+        return (await this.productNames.nth(index).textContent())?.trim() ?? '';
+    }
+
+    async addProductToCart(index: number): Promise<void> {
+        const card = this.productCards.nth(index);
+        await card.hover(); // reveals the overlay Add-to-cart button
+        await card.locator('.product-overlay .add-to-cart').click();
+        await expect(this.cartModal).toBeVisible(); // task's named wait strategy for the modal
+    }
+
+    async continueShopping(): Promise<void> {
+        await this.continueShoppingButton.click();
+        await expect(this.cartModal).not.toBeVisible();
+    }
+
+    async viewCart(): Promise<void> {
+        await this.viewCartLink.click();
+        await this.page.waitForURL(/\/view_cart/);
     }
 }

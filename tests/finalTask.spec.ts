@@ -4,6 +4,7 @@ import { ProductsPage } from '../pages/automationExercise/ProductsPage';
 import { ProductDetailPage } from '../pages/automationExercise/ProductDetailPage';
 import { ShopHomePage } from '../pages/automationExercise/ShopHomePage';
 import { generateUser } from '../utils/generateUser';
+import { CartPage } from '../pages/automationExercise/CartPage';
 
 test.describe('Automation Exercise — Final Task', () => {
   test.beforeEach(async ({ page }) => {
@@ -28,6 +29,50 @@ test.describe('Automation Exercise — Final Task', () => {
     await productsPage.searchFor('dress');
 
     await productsPage.assertSearchResultsContain('dress');
+  });
+
+  test('TC-SHOP-003: adding multiple products updates the cart', async ({ page }) => {
+    await allure.epic('Shopping');
+    await allure.feature('Cart');
+    await allure.story('Add multiple products');
+    await allure.severity('normal');
+
+    const productsPage = new ProductsPage(page);
+    const cartPage = new CartPage(page);
+
+    await productsPage.open();
+    await productsPage.assertOnPage();
+
+    const firstProductName = await productsPage.getProductName(0);
+    const secondProductName = await productsPage.getProductName(1);
+
+    await productsPage.addProductToCart(0);
+    await productsPage.continueShopping();
+
+    await productsPage.addProductToCart(1);
+    await productsPage.viewCart();
+
+    await cartPage.assertCartHasProducts([firstProductName, secondProductName]);
+  });
+
+  test('TC-SHOP-004: removing a product updates the cart', async ({ page }) => {
+    await allure.epic('Shopping');
+    await allure.feature('Cart');
+    await allure.story('Remove product');
+    await allure.severity('normal');
+
+    const productsPage = new ProductsPage(page);
+    const cartPage = new CartPage(page);
+
+    // Precondition: seed one product via the UI
+    await productsPage.open();
+    const productName = await productsPage.getProductName(0);
+    await productsPage.addProductToCart(0);
+    await productsPage.viewCart();
+
+    await cartPage.deleteProduct(productName);
+
+    await cartPage.assertCartIsEmpty();
   });
 
   test('TC-SHOP-005: product detail page shows correct data', async ({ page }) => {
