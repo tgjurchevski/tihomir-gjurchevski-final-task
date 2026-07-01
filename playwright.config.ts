@@ -40,7 +40,7 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
         baseURL: 'https://automationexercise.com',
       },
-      testMatch: '**/finalTask.spec.ts',
+      testMatch: '**/*.spec.ts',
     },
 
     // {
